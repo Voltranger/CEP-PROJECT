@@ -7,7 +7,7 @@ export default function Projectile() {
       concept={
         <div>
           <h2>Magnetism</h2>
-          <p>Magnets are objects that can pull some kinds of metal, like iron. Every magnet has two ends called poles — a North pole and a South pole. Opposite poles (North + South) pull toward each other, and the same poles push away. Magnets make an invisible area called a magnetic field; inside that field the magnet can pull or push other magnetic things. You see magnets in fridge magnets, compasses, and in many machines like speakers and motors.</p>
+          <p>Magnets are objects that can pull some of metal, like iron. Every magnet has two ends called poles — a North pole and a South pole. Opposite poles (North + South) pull toward each other, and the same poles push away. Magnets make an invisible area called a magnetic field; inside that field the magnet can pull or push other magnetic things. You see magnets in fridge magnets, compasses, and in many machines like speakers and motors.</p>
 
         
         </div>
@@ -29,7 +29,7 @@ export default function Projectile() {
           <li></li>
         </ul>
       
-       
+      
       }
     />
   );
