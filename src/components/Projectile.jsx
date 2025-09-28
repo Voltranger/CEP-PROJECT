@@ -1,10 +1,18 @@
+
 import TabLayout from "./TabLayout";
 import ProjectileSimulation from "./ProjectileSimulation"; // your simulation component
 
 export default function Projectile() {
+  
   return (
+    <div className="p-4">
+
+      
+
+      {/* Main Layout */}
     <TabLayout
-      concept={
+      concept=
+      {
         <div>
           <h2>Projectile Motion</h2>
           <p>
@@ -23,5 +31,6 @@ export default function Projectile() {
         </ul>
       }
     />
+    </div>
   );
 }

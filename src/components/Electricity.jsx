@@ -6,13 +6,13 @@ export default function Projectile() {
   return (
     <TabLayout
       concept={
-        <div>
-          <h2>Electricity</h2>
-          <p>
-           Electricity is a form of energy that we use in our daily lives to light our homes, run fans, televisions, computers, and many other appliances. It is produced by the movement of tiny charged particles called electrons.
-           Electricity flows in a path called a circuit. When the circuit is complete or closed, the current flows and makes devices like bulbs glow, and when the circuit is open, the flow stops.
-          </p>
-        </div>
+              <div>
+                <h2>Electricity</h2>
+                <p>
+                Electricity is a form of energy that we use in our daily lives to light our homes, run fans, televisions, computers, and many other appliances. It is produced by the movement of tiny charged particles called electrons.
+                Electricity flows in a path called a circuit. When the circuit is complete or closed, the current flows and makes devices like bulbs glow, and when the circuit is open, the flow stops.
+                </p>
+              </div>
       }
 
       simulation={<ElectricitySimulation />}
