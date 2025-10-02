@@ -14,7 +14,7 @@ const Header = () => {
             <h1 className="text-3xl font-bold  text-white">
             SciPlay Labs
             </h1>
-
+            
             <GiAtom className="text-white w-8 h-8 animate-spin" />
 
         </div>
