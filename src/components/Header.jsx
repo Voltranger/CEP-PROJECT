@@ -1,13 +1,14 @@
 import { GiAtom } from 'react-icons/gi'
 import { useNavigate, useLocation } from "react-router-dom";
 import { IoArrowBack } from 'react-icons/io5'; // Example using Ionicons
-
+import FloatingSymbols from "./FloatingSymbols";
 
 const Header = () => {
     const navigate = useNavigate();
     const location = useLocation();
     return ( 
     <>
+    
     <header className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 shadow p-4 flex items-center justify-between">
         <div className="text-xl font-bold text-white drop-shadow-md flex items-center gap-2">
             

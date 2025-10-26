@@ -13,6 +13,9 @@ export default function Projectile() {
         </div>
       }
       simulation={<MagnetismSimulation />}
+
+
+      
       points={
 
         <ul>  

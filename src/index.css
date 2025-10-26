@@ -1,1 +1,18 @@
 @import "tailwindcss";
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(120%) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(-20%) rotate(360deg);
+    opacity: 0;
+  }
+}
