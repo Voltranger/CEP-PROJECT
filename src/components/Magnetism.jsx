@@ -1,7 +1,7 @@
 import TabLayout from "./TabLayout";
 import MagnetismSimulation from "./MagnetismSimulation";
 import { motion } from "framer-motion";
-
+import MagnetConceptImage from "../assets/magnet-boy.png";
 export default function Projectile() {
   return (
     <TabLayout
@@ -21,7 +21,7 @@ export default function Projectile() {
 
           {/* Title — gradient blue–purple + glow */}
           <motion.h2
-            className="relative text-5xl font-extrabold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent [text-shadow:0_0_12px_rgba(120,100,255,0.6)] drop-shadow-[0_0_10px_rgba(100,200,255,0.3)]"
+            className="relative text-5xl font-extrabold pb-1 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent [text-shadow:0_0_12px_rgba(120,100,255,0.6)] drop-shadow-[0_0_10px_rgba(100,200,255,0.3)]"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1 }}
@@ -53,6 +53,16 @@ export default function Projectile() {
           >
             From fridge magnets to Earth itself — magnetism is everywhere! 🌍
           </motion.p>
+          <motion.img
+                      src={MagnetConceptImage}
+                      alt="Animated child holding a globe of electricity"
+                      // KEY CHANGES: max-w-full ensures it spans the entire container width. 
+                      // Negative margin adjusted for a tighter fit below the text box.
+                      className="relative w-full max-w-full h-[375px] pl-0 pr-0  pt-8 mx-auto mt-[-0.5rem] z-10 pointer-events-none block"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.8, duration: 1.5 }}
+                    />
         </motion.div>
       }
       simulation={<MagnetismSimulation />}
