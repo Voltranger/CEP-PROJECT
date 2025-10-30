@@ -1,382 +1,205 @@
-import { useState, useRef } from "react";
+import React, { useState } from "react";
+import { motion } from "framer-motion";
 
-// Set BASE_URL to 5000 for consistency
-const BASE_URL = "http://localhost:5001"; 
-const BACKEND_URL_SAVE = `${BASE_URL}/api/save-result`;
-const BACKEND_URL_HISTORY = `${BASE_URL}/api/history`;
+export default function EarthMagneticFieldCircle() {
+  const [show, setShow] = useState(false);
 
-// -------------------------------------------------------------------
-// START OF ProjectileSimulation Component
-// -------------------------------------------------------------------
-
-export default function ProjectileSimulation() {
-  const [angle, setAngle] = useState(45);
-  const [speed, setSpeed] = useState(20);
-  const [ballPos, setBallPos] = useState({ x: 0, y: 0 });
-  const [stats, setStats] = useState({ maxHeight: 0, range: 0, time: 0 });
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [message, setMessage] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [historyData, setHistoryData] = useState([]);
-  const g = 9.8;
-  const intervalRef = useRef(null);
-
-  const scale = 10;
-  const ballRadius = 0.9;
-  const basket = { 
-    x: 60, y: 0, width: 10, height: 2
-  };
-
-  // Function to fetch history data and open the modal
-  const fetchAndOpenHistory = async () => {
-    try {
-      const response = await fetch(BACKEND_URL_HISTORY);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      setHistoryData(data);
-      setIsModalOpen(true);
-    } catch (error) {
-      console.error('Error fetching history:', error);
-      alert('Could not load history. See console for details.');
-    }
-  };
-
-  // Function to delete all history
-  const clearHistory = async () => {
-    if (!window.confirm("Are you sure you want to clear ALL simulation history? This cannot be undone.")) {
-        return;
-    }
-    try {
-        const response = await fetch(BACKEND_URL_HISTORY, {
-            method: 'DELETE',
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        setHistoryData([]); 
-        setIsModalOpen(false);
-        console.log("History successfully cleared.");
-
-    } catch (error) {
-        console.error('Error clearing history:', error);
-        alert('Failed to clear history. See console.');
-    }
-  };
-
-  // Function to handle the POST request (SAVE)
-  const saveResultToBackend = (finalStats, finalRange, wasScored) => {
-    const payload = {
-        angle: angle,
-        speed: speed,
-        maxHeight: finalStats.maxHeight, 
-        range: finalRange, 
-        time: finalStats.time,
-        scored: wasScored,
-    };
-
-    fetch(BACKEND_URL_SAVE, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log(`Result saved to DB. Status: ${data.status}`);
-    })
-    .catch(error => {
-        console.error('Error saving data to backend:', error);
-    });
-  };
-
-  // ------------------------- SIMULATION LOGIC FIX -------------------------
-  const simulate = () => {
-    clearInterval(intervalRef.current);
-    setBallPos({ x: 0, y: 0 });
-    setIsAnimating(true);
-    setMessage("");
-
-    const rad = (angle * Math.PI) / 180;
-    const vx = speed * Math.cos(rad);
-    const vy = speed * Math.sin(rad);
-    const dt = 0.05;
-    let t = 0;
-    let maxY = 0;
-    let scored = false; // Flag to track if the ball has hit the basket
-
-    intervalRef.current = setInterval(() => {
-      const x = vx * t;
-      let y = vy * t - 0.5 * g * t * t;
-      
-      // --- 1. CHECK FOR SCORING (IMMEDIATE SUCCESS) ---
-      const basketLeft = basket.x;
-      const basketRight = basket.x + basket.width;
-      const basketBottom = basket.y + basket.height;
-
-      if (
-        x + ballRadius >= basketLeft &&
-        x - ballRadius <= basketRight &&
-        y - ballRadius >= basket.y &&
-        y + ballRadius <= basketBottom
-      ) {
-        // SCORING DETECTED!
-        clearInterval(intervalRef.current);
-        setIsAnimating(false);
-        setMessage("✅ Correct! The ball went in the basket!");
-        scored = true;
-        
-        const finalStats = {
-          maxHeight: maxY.toFixed(2),
-          range: x.toFixed(2), 
-          time: t.toFixed(2),
-        };
-        setStats(finalStats);
-        saveResultToBackend(finalStats, x.toFixed(2), scored);
-        
-        // Final position update (just before exiting)
-        setBallPos({ x, y });
-        return; 
-      }
-      
-      // --- 2. CHECK FOR HITTING THE GROUND (MISS) ---
-      if (y < 0) {
-        // End simulation only if y < 0 AND the ball hasn't scored yet.
-        clearInterval(intervalRef.current);
-        setIsAnimating(false);
-        
-        const finalStats = {
-          maxHeight: maxY.toFixed(2),
-          range: x.toFixed(2), // Use the x position at the time of impact
-          time: t.toFixed(2),
-        };
-        setStats(finalStats);
-
-        if (!scored) setMessage("❌ Missed! Try again.");
-        saveResultToBackend(finalStats, x.toFixed(2), scored);
-        
-        // Final position update (on the ground)
-        setBallPos({ x, y: 0 }); 
-        return; 
-      }
-
-      // --- 3. CONTINUE ANIMATION ---
-      if (y > maxY) maxY = y;
-      setBallPos({ x, y });
-      t += dt;
-    }, 50);
-  };
-  // ------------------------- END SIMULATION LOGIC FIX -------------------------
-
-  const reset = () => {
-    clearInterval(intervalRef.current);
-    setBallPos({ x: 0, y: 0 });
-    setStats({ maxHeight: 0, range: 0, time: 0 });
-    setIsAnimating(false);
-    setMessage("");
-  };
-
-  return (
-    <div style={{ padding: "20px", maxWidth: "800px", margin: "auto" }}>
-      <h1 style={{ textAlign: "center" }}>🏀 Projectile Motion Lab</h1>
-
-      {/* Sliders (omitted for brevity) */}
-      <div style={{ marginBottom: "20px" }}>
-        <label>
-          Launch Angle: {angle}°<br />
-          <input type="range" min="10" max="80" value={angle} disabled={isAnimating} onChange={(e) => setAngle(Number(e.target.value))} />
-        </label>
-      </div>
-      <div style={{ marginBottom: "20px" }}>
-        <label>
-          Speed: {speed} m/s<br />
-          <input type="range" min="5" max="50" value={speed} disabled={isAnimating} onChange={(e) => setSpeed(Number(e.target.value))} />
-        </label>
-      </div>
-
-      {/* Buttons */}
-      <button onClick={simulate} disabled={isAnimating} style={{ marginRight: "10px" }}>
-        {isAnimating ? "Simulating..." : "Simulate"}
-      </button>
-      <button onClick={reset} style={{ marginRight: "10px" }}>Reset</button>
-      
-      {/* Previous History Button */}
-      <button onClick={fetchAndOpenHistory} disabled={isAnimating}>
-        Previous History ({historyData.length})
-      </button>
-
-      {/* Stats and Message (omitted for brevity) */}
-      <div style={{ margin: "20px 0", fontWeight: "bold" }}>
-        <p>Max Height: {stats.maxHeight} m</p>
-        <p>Range: {stats.range} m</p>
-        <p>Time of Flight: {stats.time} s</p>
-      </div>
-      {message && (
-        <div style={{ fontSize: "18px", fontWeight: "bold", color: message.includes("Correct") ? "green" : "red" }}>
-          {message}
-        </div>
-      )}
-
-      {/* Visualization Area (omitted for brevity) */}
-      <div style={{ background: "#f0f0f0", borderRadius: "10px", position: "relative", height: "400px", overflow: "hidden",}}>
-        {/* Basket */}
-        <div style={{ position: "absolute", bottom: `${basket.y * scale}px`, left: `${basket.x * scale}px`, width: `${basket.width * scale}px`, height: `${basket.height * scale}px`, border: "3px solid brown", borderTop: "none", borderRadius: "0 0 10px 10px", background: "#514318ff",}}/>
-        {/* Ball */}
-        <div style={{ position: "absolute", width: `${ballRadius * 2 * scale}px`, height: `${ballRadius * 2 * scale}px`, borderRadius: "50%", background: "orange", left: `${ballPos.x * scale}px`, bottom: `${ballPos.y * scale}px`, transition: "all 0.05s linear",}}/>
-      </div>
-
-      {/* Render the History Modal */}
-      {isModalOpen && (
-        <HistoryModal 
-          data={historyData} 
-          onClose={() => setIsModalOpen(false)}
-          onClearHistory={clearHistory}
-        />
-      )}
-    </div>
-  );
-}
-
-// -------------------------------------------------------------------
-// 3. HistoryModal Component (Must be included or imported)
-// -------------------------------------------------------------------
-
-const formatDate = (isoString) => {
-  if (!isoString) return 'N/A';
-  return new Date(isoString).toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  // Generate circular outer magnetic field lines
+  const outerCircles = Array.from({ length: 10 }).map((_, i) => {
+    const radius = 150 + i * 12;
+    return radius;
   });
-};
 
-function HistoryModal({ data, onClose, onClearHistory }) {
+  // Curved orange lines inside the Earth (core field lines)
+  const innerCorePaths = Array.from({ length: 5 }).map((_, i) => {
+    const offset = (i - 2) * 15;
+    const startX = 450 + offset;
+    const midX = 450;
+    const endX = 450 - offset;
+    return `M ${startX},370 Q ${midX},250 ${endX},130`;
+  });
+
   return (
-    <div style={styles.backdrop}>
-      <div style={styles.modal}>
-        <div style={styles.header}>
-          <h2>Simulation History ({data.length} records)</h2>
-          <button onClick={onClose} style={styles.closeButton}>&times;</button>
+    <div
+      style={{
+        textAlign: "center",
+        fontFamily: "Poppins, sans-serif",
+        color: "white",
+        marginTop: "30px",
+      }}
+    >
+      <h1
+        style={{
+          fontSize: "34px",
+          background: "linear-gradient(90deg, #00c3ff, #0077ff)",
+          WebkitBackgroundClip: "text",
+          color: "transparent",
+          fontWeight: "bold",
+          marginBottom: "10px",
+        }}
+      >
+        🌍 Earth’s Magnetic Field Visualization
+      </h1>
+
+      <p style={{ color: "#b3b3b3", marginBottom: "20px" }}>
+        Watch how <b>Earth’s magnetic field</b> surrounds our planet in blue,
+        while orange lines show the <b>core magnetic flow</b> inside!
+      </p>
+
+      {!show ? (
+        <button
+          onClick={() => setShow(true)}
+          style={{
+            background: "#0077ff",
+            color: "white",
+            fontWeight: "bold",
+            borderRadius: "8px",
+            border: "none",
+            padding: "12px 25px",
+            fontSize: "16px",
+            cursor: "pointer",
+          }}
+        >
+          🧲 Show Simulation
+        </button>
+      ) : (
+        <div>
+          <div
+            style={{
+              position: "relative",
+              width: "900px",
+              height: "500px",
+              margin: "auto",
+              background: "radial-gradient(circle at center, #001a2e, #000)",
+              borderRadius: "20px",
+              boxShadow: "0 0 40px rgba(0, 200, 255, 0.2)",
+              overflow: "hidden",
+            }}
+          >
+            <svg width="900" height="500" style={{ position: "absolute" }}>
+              <defs>
+                <radialGradient id="blueGlow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#00eaff" />
+                  <stop offset="100%" stopColor="#0044ff" />
+                </radialGradient>
+                <linearGradient id="orangeGlow" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ffcc00" />
+                  <stop offset="100%" stopColor="#ff6600" />
+                </linearGradient>
+              </defs>
+
+              {/* Outer circular field lines */}
+              {outerCircles.map((r, i) => (
+                <motion.circle
+                  key={i}
+                  cx="450"
+                  cy="250"
+                  r={r}
+                  stroke="url(#blueGlow)"
+                  strokeWidth="2"
+                  fill="none"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{
+                    duration: 2,
+                    delay: i * 0.2,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                  }}
+                />
+              ))}
+
+              {/* Inner core magnetic lines */}
+              {innerCorePaths.map((path, i) => (
+                <motion.path
+                  key={"core" + i}
+                  d={path}
+                  stroke="url(#orangeGlow)"
+                  strokeWidth="3"
+                  fill="none"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{
+                    duration: 2,
+                    delay: i * 0.3,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                  }}
+                />
+              ))}
+            </svg>
+
+            {/* Earth Body */}
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 30, ease: "linear" }}
+              style={{
+                position: "absolute",
+                left: "390px",
+                top: "200px",
+                width: "120px",
+                height: "120px",
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(circle at 30% 30%, #00d4ff, #0040ff)",
+                boxShadow: "0 0 50px rgba(0, 255, 255, 0.8)",
+              }}
+            ></motion.div>
+
+            {/* Inner glowing core */}
+            <div
+              style={{
+                position: "absolute",
+                left: "425px",
+                top: "235px",
+                width: "50px",
+                height: "50px",
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(circle, #ffcc00, #ff6600, transparent)",
+                boxShadow: "0 0 40px rgba(255, 200, 0, 0.8)",
+              }}
+            ></div>
+
+            {/* Labels */}
+            <div
+              style={{
+                position: "absolute",
+                top: "180px",
+                left: "440px",
+                color: "#ff6666",
+                fontWeight: "bold",
+                fontSize: "18px",
+              }}
+            >
+              N
+            </div>
+            <div
+              style={{
+                position: "absolute",
+                bottom: "170px",
+                left: "445px",
+                color: "#00ffff",
+                fontWeight: "bold",
+                fontSize: "18px",
+              }}
+            >
+              S
+            </div>
+          </div>
+
+          <p
+            style={{
+              marginTop: "25px",
+              color: "#ccc",
+              fontStyle: "italic",
+              fontSize: "16px",
+            }}
+          >
+            “Blue lines show the protective magnetic bubble around Earth — orange lines show how it starts deep in the molten core.” 🌎✨
+          </p>
         </div>
-        
-        <div style={styles.body}>
-          {data.length === 0 ? (
-            <p style={{textAlign: 'center', color: '#666'}}>No history records found. Run a simulation to save data.</p>
-          ) : (
-            data.map((result, index) => (
-              <div key={result._id || index} style={styles.record}>
-                <span style={styles.status}>
-                  {result.scored ? '✅ HIT' : '❌ MISS'}
-                </span>
-                <p><strong>Time:</strong> {formatDate(result.timestamp)}</p>
-                <p>Angle: {result.angle}° | Speed: {result.speed} m/s</p>
-                <p>Max Ht: {result.maxHeight} m | Range: {result.range} m | Time of Flight: {result.time} s</p>
-              </div>
-            ))
-          )}
-        </div>
-        
-        <div style={styles.footer}>
-            <button onClick={onClearHistory} style={styles.clearButton}>
-                Clear All History
-            </button>
-            <button onClick={onClose} style={styles.footerButton}>Close</button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
-
-// Simple styling object for the modal
-const styles = {
-  backdrop: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  modal: {
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    padding: '25px',
-    width: '90%',
-    maxWidth: '600px',
-    maxHeight: '80%',
-    display: 'flex',
-    flexDirection: 'column',
-    boxShadow: '0 5px 15px rgba(0, 0, 0, 0.5)',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottom: '2px solid #ddd',
-    paddingBottom: '10px',
-    marginBottom: '10px',
-  },
-  closeButton: {
-    background: 'none',
-    border: 'none',
-    fontSize: '2rem',
-    cursor: 'pointer',
-    color: '#333',
-  },
-  body: {
-    overflowY: 'auto',
-    flexGrow: 1,
-    padding: '10px 0',
-  },
-  record: {
-    border: '1px solid #ccc',
-    padding: '15px',
-    marginBottom: '10px',
-    borderRadius: '6px',
-    position: 'relative',
-    backgroundColor: '#fefefe',
-    fontSize: '0.9rem',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-  },
-  status: {
-    position: 'absolute',
-    top: '10px',
-    right: '15px',
-    fontWeight: 'bold',
-    fontSize: '1rem',
-  },
-  footer: {
-    marginTop: '20px',
-    paddingTop: '10px',
-    borderTop: '1px solid #ddd',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  clearButton: {
-    padding: '10px 20px',
-    cursor: 'pointer',
-    backgroundColor: '#dc3545', 
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-  },
-  footerButton: {
-    padding: '10px 20px',
-    cursor: 'pointer',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-  }
-};

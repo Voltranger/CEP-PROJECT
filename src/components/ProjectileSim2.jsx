@@ -1,382 +1,220 @@
-import { useState, useRef } from "react";
-
-// Set BASE_URL to 5000 for consistency
-const BASE_URL = "http://localhost:5001"; 
-const BACKEND_URL_SAVE = `${BASE_URL}/api/save-result`;
-const BACKEND_URL_HISTORY = `${BASE_URL}/api/history`;
-
-// -------------------------------------------------------------------
-// START OF ProjectileSimulation Component
-// -------------------------------------------------------------------
+import React, { useState, useEffect, useRef } from "react";
 
 export default function ProjectileSimulation() {
   const [angle, setAngle] = useState(45);
-  const [speed, setSpeed] = useState(20);
-  const [ballPos, setBallPos] = useState({ x: 0, y: 0 });
-  const [stats, setStats] = useState({ maxHeight: 0, range: 0, time: 0 });
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isShooting, setIsShooting] = useState(false);
   const [message, setMessage] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [historyData, setHistoryData] = useState([]);
+
   const g = 9.8;
-  const intervalRef = useRef(null);
+  const velocity = 50; // fixed m/s
+  const targetX = 800; // px from left
+  const targetHeight = 120; // px
+  const targetWidth = 20; // px
+  const scale = 5; // meters -> pixels
 
-  const scale = 10;
-  const ballRadius = 0.9;
-  const basket = { 
-    x: 60, y: 0, width: 10, height: 2
-  };
+  // Gun visuals
+  const gunPivot = { x: 20, y: 10 }; // pivot offset from left/bottom of container (px)
+  const gunLength = 50; // barrel length (px)
 
-  // Function to fetch history data and open the modal
-  const fetchAndOpenHistory = async () => {
-    try {
-      const response = await fetch(BACKEND_URL_HISTORY);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      setHistoryData(data);
-      setIsModalOpen(true);
-    } catch (error) {
-      console.error('Error fetching history:', error);
-      alert('Could not load history. See console for details.');
-    }
-  };
+  // Keep the shoot angle and gun tip at shoot start (so changes during flight don't affect the shot)
+  const shootAngleRef = useRef(angle);
+  const gunTipRef = useRef({ x: gunPivot.x + gunLength, y: gunPivot.y });
 
-  // Function to delete all history
-  const clearHistory = async () => {
-    if (!window.confirm("Are you sure you want to clear ALL simulation history? This cannot be undone.")) {
-        return;
-    }
-    try {
-        const response = await fetch(BACKEND_URL_HISTORY, {
-            method: 'DELETE',
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        setHistoryData([]); 
-        setIsModalOpen(false);
-        console.log("History successfully cleared.");
-
-    } catch (error) {
-        console.error('Error clearing history:', error);
-        alert('Failed to clear history. See console.');
-    }
-  };
-
-  // Function to handle the POST request (SAVE)
-  const saveResultToBackend = (finalStats, finalRange, wasScored) => {
-    const payload = {
-        angle: angle,
-        speed: speed,
-        maxHeight: finalStats.maxHeight, 
-        range: finalRange, 
-        time: finalStats.time,
-        scored: wasScored,
-    };
-
-    fetch(BACKEND_URL_SAVE, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log(`Result saved to DB. Status: ${data.status}`);
-    })
-    .catch(error => {
-        console.error('Error saving data to backend:', error);
-    });
-  };
-
-  // ------------------------- SIMULATION LOGIC FIX -------------------------
-  const simulate = () => {
-    clearInterval(intervalRef.current);
-    setBallPos({ x: 0, y: 0 });
-    setIsAnimating(true);
-    setMessage("");
-
+  // start a shot: capture current angle and compute gun tip location
+  const handleShoot = () => {
+    shootAngleRef.current = angle;
+    // compute gun tip in px using current angle
     const rad = (angle * Math.PI) / 180;
-    const vx = speed * Math.cos(rad);
-    const vy = speed * Math.sin(rad);
-    const dt = 0.05;
-    let t = 0;
-    let maxY = 0;
-    let scored = false; // Flag to track if the ball has hit the basket
+    const tipX = gunPivot.x + gunLength * Math.cos(rad);
+    const tipY = gunPivot.y + gunLength * Math.sin(rad);
+    gunTipRef.current = { x: tipX, y: tipY };
 
-    intervalRef.current = setInterval(() => {
-      const x = vx * t;
-      let y = vy * t - 0.5 * g * t * t;
-      
-      // --- 1. CHECK FOR SCORING (IMMEDIATE SUCCESS) ---
-      const basketLeft = basket.x;
-      const basketRight = basket.x + basket.width;
-      const basketBottom = basket.y + basket.height;
-
-      if (
-        x + ballRadius >= basketLeft &&
-        x - ballRadius <= basketRight &&
-        y - ballRadius >= basket.y &&
-        y + ballRadius <= basketBottom
-      ) {
-        // SCORING DETECTED!
-        clearInterval(intervalRef.current);
-        setIsAnimating(false);
-        setMessage("✅ Correct! The ball went in the basket!");
-        scored = true;
-        
-        const finalStats = {
-          maxHeight: maxY.toFixed(2),
-          range: x.toFixed(2), 
-          time: t.toFixed(2),
-        };
-        setStats(finalStats);
-        saveResultToBackend(finalStats, x.toFixed(2), scored);
-        
-        // Final position update (just before exiting)
-        setBallPos({ x, y });
-        return; 
-      }
-      
-      // --- 2. CHECK FOR HITTING THE GROUND (MISS) ---
-      if (y < 0) {
-        // End simulation only if y < 0 AND the ball hasn't scored yet.
-        clearInterval(intervalRef.current);
-        setIsAnimating(false);
-        
-        const finalStats = {
-          maxHeight: maxY.toFixed(2),
-          range: x.toFixed(2), // Use the x position at the time of impact
-          time: t.toFixed(2),
-        };
-        setStats(finalStats);
-
-        if (!scored) setMessage("❌ Missed! Try again.");
-        saveResultToBackend(finalStats, x.toFixed(2), scored);
-        
-        // Final position update (on the ground)
-        setBallPos({ x, y: 0 }); 
-        return; 
-      }
-
-      // --- 3. CONTINUE ANIMATION ---
-      if (y > maxY) maxY = y;
-      setBallPos({ x, y });
-      t += dt;
-    }, 50);
-  };
-  // ------------------------- END SIMULATION LOGIC FIX -------------------------
-
-  const reset = () => {
-    clearInterval(intervalRef.current);
-    setBallPos({ x: 0, y: 0 });
-    setStats({ maxHeight: 0, range: 0, time: 0 });
-    setIsAnimating(false);
+    setPosition({ x: tipX, y: tipY }); // initial display pos
     setMessage("");
+    setIsShooting(true);
   };
 
+  // animation + physics
+  useEffect(() => {
+    if (!isShooting) return;
+
+    const angleAtShot = shootAngleRef.current;
+    const rad = (angleAtShot * Math.PI) / 180;
+    const vX = velocity * Math.cos(rad); // m/s
+    const vY = velocity * Math.sin(rad); // m/s
+
+    const startTime = Date.now();
+    let hitDetected = false;
+
+    const id = setInterval(() => {
+      const t = (Date.now() - startTime) / 1000;
+      const x_m = vX * t;
+      const y_m = vY * t - 0.5 * g * t * t;
+
+      // display coordinates (px)
+      const x_px = gunTipRef.current.x + x_m * scale;
+      const y_px = Math.max(0, gunTipRef.current.y + y_m * scale);
+
+      setPosition({ x: x_px, y: y_px });
+
+      // Collision detection: projectile's center inside target block area
+      if (
+        x_px >= targetX &&
+        x_px <= targetX + targetWidth &&
+        y_px <= targetHeight
+      ) {
+        hitDetected = true;
+        setMessage("🎯 Target Hit!");
+        setIsShooting(false);
+        clearInterval(id);
+        return;
+      }
+
+      // Landed (below starting height)
+      if (y_m < 0 && t > 0.01) {
+        if (!hitDetected) setMessage("❌ Did Not Hit!");
+        setIsShooting(false);
+        clearInterval(id);
+        return;
+      }
+    }, 20);
+
+    return () => clearInterval(id);
+  }, [isShooting]);
+
+  // handle slider/number sync & clamp
+  const handleAngleChange = (val) => {
+    const n = Math.max(5, Math.min(85, Number(val || 0))); // clamp 5..85
+    setAngle(n);
+  };
+
+  // For CSS rotate: positive angle should visually tilt upward.
+  // rotate(-angle) is used because CSS rotation is clockwise-positive.
+  const barrelRotation = `rotate(${-angle}deg)`;
+
   return (
-    <div style={{ padding: "20px", maxWidth: "800px", margin: "auto" }}>
-      <h1 style={{ textAlign: "center" }}>🏀 Projectile Motion Lab</h1>
+    <div style={{ textAlign: "center", marginTop: "40px" }}>
+      <h2>🎯 Projectile Motion — Inclining Gun</h2>
+      <p>Use the slider or number input to incline the gun, then press <b>Shoot</b>.</p>
 
-      {/* Sliders (omitted for brevity) */}
-      <div style={{ marginBottom: "20px" }}>
-        <label>
-          Launch Angle: {angle}°<br />
-          <input type="range" min="10" max="80" value={angle} disabled={isAnimating} onChange={(e) => setAngle(Number(e.target.value))} />
-        </label>
-      </div>
-      <div style={{ marginBottom: "20px" }}>
-        <label>
-          Speed: {speed} m/s<br />
-          <input type="range" min="5" max="50" value={speed} disabled={isAnimating} onChange={(e) => setSpeed(Number(e.target.value))} />
-        </label>
-      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ marginRight: 8 }}>Angle (°):</label>
 
-      {/* Buttons */}
-      <button onClick={simulate} disabled={isAnimating} style={{ marginRight: "10px" }}>
-        {isAnimating ? "Simulating..." : "Simulate"}
-      </button>
-      <button onClick={reset} style={{ marginRight: "10px" }}>Reset</button>
-      
-      {/* Previous History Button */}
-      <button onClick={fetchAndOpenHistory} disabled={isAnimating}>
-        Previous History ({historyData.length})
-      </button>
-
-      {/* Stats and Message (omitted for brevity) */}
-      <div style={{ margin: "20px 0", fontWeight: "bold" }}>
-        <p>Max Height: {stats.maxHeight} m</p>
-        <p>Range: {stats.range} m</p>
-        <p>Time of Flight: {stats.time} s</p>
-      </div>
-      {message && (
-        <div style={{ fontSize: "18px", fontWeight: "bold", color: message.includes("Correct") ? "green" : "red" }}>
-          {message}
-        </div>
-      )}
-
-      {/* Visualization Area (omitted for brevity) */}
-      <div style={{ background: "#f0f0f0", borderRadius: "10px", position: "relative", height: "400px", overflow: "hidden",}}>
-        {/* Basket */}
-        <div style={{ position: "absolute", bottom: `${basket.y * scale}px`, left: `${basket.x * scale}px`, width: `${basket.width * scale}px`, height: `${basket.height * scale}px`, border: "3px solid brown", borderTop: "none", borderRadius: "0 0 10px 10px", background: "#514318ff",}}/>
-        {/* Ball */}
-        <div style={{ position: "absolute", width: `${ballRadius * 2 * scale}px`, height: `${ballRadius * 2 * scale}px`, borderRadius: "50%", background: "orange", left: `${ballPos.x * scale}px`, bottom: `${ballPos.y * scale}px`, transition: "all 0.05s linear",}}/>
-      </div>
-
-      {/* Render the History Modal */}
-      {isModalOpen && (
-        <HistoryModal 
-          data={historyData} 
-          onClose={() => setIsModalOpen(false)}
-          onClearHistory={clearHistory}
+        <input
+          type="number"
+          min={5}
+          max={85}
+          value={angle}
+          onChange={(e) => handleAngleChange(e.target.value)}
+          style={{ width: "70px", marginRight: "12px" }}
         />
-      )}
-    </div>
-  );
-}
 
-// -------------------------------------------------------------------
-// 3. HistoryModal Component (Must be included or imported)
-// -------------------------------------------------------------------
+        <input
+          type="range"
+          min={5}
+          max={85}
+          value={angle}
+          onChange={(e) => handleAngleChange(e.target.value)}
+          style={{ verticalAlign: "middle", width: "300px" }}
+        />
+      </div>
 
-const formatDate = (isoString) => {
-  if (!isoString) return 'N/A';
-  return new Date(isoString).toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
+      <button
+        onClick={handleShoot}
+        disabled={isShooting}
+        style={{
+          padding: "8px 18px",
+          fontWeight: "bold",
+          cursor: "pointer",
+          backgroundColor: "#2a9d8f",
+          color: "white",
+          borderRadius: "8px",
+          border: "none",
+        }}
+      >
+        🔫 Shoot
+      </button>
 
-function HistoryModal({ data, onClose, onClearHistory }) {
-  return (
-    <div style={styles.backdrop}>
-      <div style={styles.modal}>
-        <div style={styles.header}>
-          <h2>Simulation History ({data.length} records)</h2>
-          <button onClick={onClose} style={styles.closeButton}>&times;</button>
-        </div>
-        
-        <div style={styles.body}>
-          {data.length === 0 ? (
-            <p style={{textAlign: 'center', color: '#666'}}>No history records found. Run a simulation to save data.</p>
-          ) : (
-            data.map((result, index) => (
-              <div key={result._id || index} style={styles.record}>
-                <span style={styles.status}>
-                  {result.scored ? '✅ HIT' : '❌ MISS'}
-                </span>
-                <p><strong>Time:</strong> {formatDate(result.timestamp)}</p>
-                <p>Angle: {result.angle}° | Speed: {result.speed} m/s</p>
-                <p>Max Ht: {result.maxHeight} m | Range: {result.range} m | Time of Flight: {result.time} s</p>
-              </div>
-            ))
-          )}
-        </div>
-        
-        <div style={styles.footer}>
-            <button onClick={onClearHistory} style={styles.clearButton}>
-                Clear All History
-            </button>
-            <button onClick={onClose} style={styles.footerButton}>Close</button>
-        </div>
+      <h3
+        style={{
+          marginTop: "18px",
+          color: message.includes("Hit") ? "green" : "red",
+          fontWeight: "bold",
+        }}
+      >
+        {message}
+      </h3>
+
+      {/* Visual Area */}
+      <div
+        style={{
+          position: "relative",
+          width: "900px",
+          height: "400px",
+          margin: "40px auto",
+          borderBottom: "3px solid #444",
+          overflow: "hidden",
+          background: "linear-gradient(to top, #eaf6ff 30%, #ffffff 100%)",
+        }}
+      >
+        {/* ground base */}
+        <div
+          style={{
+            position: "absolute",
+            left: `${gunPivot.x - 20}px`,
+            bottom: `${gunPivot.y - 10}px`,
+            width: "40px",
+            height: "20px",
+            background: "gray",
+            borderRadius: "4px",
+          }}
+        />
+
+        {/* gun barrel - rotates around left center (the pivot) */}
+        <div
+          style={{
+            position: "absolute",
+            left: `${gunPivot.x}px`,
+            bottom: `${gunPivot.y}px`,
+            width: `${gunLength}px`,
+            height: "8px",
+            background: "black",
+            transformOrigin: "left center",
+            transform: barrelRotation,
+            borderRadius: "4px",
+            transition: "transform 0.12s ease-out", // smooth dynamic incline
+          }}
+        />
+
+        {/* Projectile (circle) */}
+        <div
+          style={{
+            position: "absolute",
+            left: `${position.x}px`,
+            bottom: `${position.y}px`,
+            width: "12px",
+            height: "12px",
+            borderRadius: "50%",
+            background: "black",
+            transform: "translate(-50%, -50%)",
+            pointerEvents: "none",
+          }}
+        ></div>
+
+        {/* Target Block */}
+        <div
+          style={{
+            position: "absolute",
+            left: `${targetX}px`,
+            bottom: "0px",
+            width: `${targetWidth}px`,
+            height: `${targetHeight}px`,
+            background: "red",
+            border: "2px solid darkred",
+          }}
+        />
       </div>
     </div>
   );
 }
-
-// Simple styling object for the modal
-const styles = {
-  backdrop: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  modal: {
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    padding: '25px',
-    width: '90%',
-    maxWidth: '600px',
-    maxHeight: '80%',
-    display: 'flex',
-    flexDirection: 'column',
-    boxShadow: '0 5px 15px rgba(0, 0, 0, 0.5)',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottom: '2px solid #ddd',
-    paddingBottom: '10px',
-    marginBottom: '10px',
-  },
-  closeButton: {
-    background: 'none',
-    border: 'none',
-    fontSize: '2rem',
-    cursor: 'pointer',
-    color: '#333',
-  },
-  body: {
-    overflowY: 'auto',
-    flexGrow: 1,
-    padding: '10px 0',
-  },
-  record: {
-    border: '1px solid #ccc',
-    padding: '15px',
-    marginBottom: '10px',
-    borderRadius: '6px',
-    position: 'relative',
-    backgroundColor: '#fefefe',
-    fontSize: '0.9rem',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-  },
-  status: {
-    position: 'absolute',
-    top: '10px',
-    right: '15px',
-    fontWeight: 'bold',
-    fontSize: '1rem',
-  },
-  footer: {
-    marginTop: '20px',
-    paddingTop: '10px',
-    borderTop: '1px solid #ddd',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  clearButton: {
-    padding: '10px 20px',
-    cursor: 'pointer',
-    backgroundColor: '#dc3545', 
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-  },
-  footerButton: {
-    padding: '10px 20px',
-    cursor: 'pointer',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-  }
-};

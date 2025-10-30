@@ -182,7 +182,18 @@ export default function ProjectileSimulation() {
 
   return (
     <div style={{ padding: "20px", maxWidth: "800px", margin: "auto" }}>
-      <h1 style={{ textAlign: "center" }}>🏀 Projectile Motion Lab</h1>
+      <h1
+  style={{
+    textAlign: "center",
+    fontSize: "2.5rem",     // Increase or tweak to your liking (e.g., 3rem)
+    fontWeight: "800",
+    color: "#2c3e50",
+    textShadow: "2px 2px 8px rgba(0,0,0,0.3)",
+    marginBottom: "20px",
+  }}
+>
+  🏀 Projectile Motion Lab
+</h1>
 
       {/* Sliders (omitted for brevity) */}
       <div style={{ marginBottom: "20px" }}>
@@ -198,16 +209,69 @@ export default function ProjectileSimulation() {
         </label>
       </div>
 
+    
       {/* Buttons */}
-      <button onClick={simulate} disabled={isAnimating} style={{ marginRight: "10px" }}>
-        {isAnimating ? "Simulating..." : "Simulate"}
-      </button>
-      <button onClick={reset} style={{ marginRight: "10px" }}>Reset</button>
-      
-      {/* Previous History Button */}
-      <button onClick={fetchAndOpenHistory} disabled={isAnimating}>
-        Previous History ({historyData.length})
-      </button>
+<div style={{ display: "flex", gap: "12px", marginBottom: "20px" }}>
+  <button
+    onClick={simulate}
+    disabled={isAnimating}
+    style={{
+      padding: "10px 20px",
+      backgroundColor: isAnimating ? "#6c757d" : "#28a745",
+      color: "white",
+      border: "none",
+      borderRadius: "6px",
+      cursor: isAnimating ? "not-allowed" : "pointer",
+      fontWeight: "bold",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+      transition: "transform 0.1s, background 0.2s",
+    }}
+    onMouseOver={(e) => (e.target.style.transform = "scale(1.05)")}
+    onMouseOut={(e) => (e.target.style.transform = "scale(1.0)")}
+  >
+    {isAnimating ? "Simulating..." : "Simulate"}
+  </button>
+
+  <button
+    onClick={reset}
+    style={{
+      padding: "10px 20px",
+      backgroundColor: "#ffc107",
+      color: "#212529",
+      border: "none",
+      borderRadius: "6px",
+      cursor: "pointer",
+      fontWeight: "bold",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+      transition: "transform 0.1s, background 0.2s",
+    }}
+    onMouseOver={(e) => (e.target.style.transform = "scale(1.05)")}
+    onMouseOut={(e) => (e.target.style.transform = "scale(1.0)")}
+  >
+    Reset
+  </button>
+
+  <button
+    onClick={fetchAndOpenHistory}
+    disabled={isAnimating}
+    style={{
+      padding: "10px 20px",
+      backgroundColor: "#007bff",
+      color: "white",
+      border: "none",
+      borderRadius: "6px",
+      cursor: isAnimating ? "not-allowed" : "pointer",
+      fontWeight: "bold",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+      transition: "transform 0.1s, background 0.2s",
+    }}
+    onMouseOver={(e) => (e.target.style.transform = "scale(1.05)")}
+    onMouseOut={(e) => (e.target.style.transform = "scale(1.0)")}
+  >
+    Previous History ({historyData.length})
+  </button>
+</div>
+
 
       {/* Stats and Message (omitted for brevity) */}
       <div style={{ margin: "20px 0", fontWeight: "bold" }}>

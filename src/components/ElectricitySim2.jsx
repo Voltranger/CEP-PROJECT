@@ -1,220 +1,189 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from "react";
+import { motion } from "framer-motion";
 
-// --- Configuration Constants (Adjusted for larger view) ---
-const FAN_CENTER_X = 280; // Adjusted X position
-const FAN_CENTER_Y = 200; // Adjusted Y position
-const FAN_RADIUS = 50;
-
-// Function to calculate electron position along the circuit path
-const getElectronPosition = (time, offset = 0) => {
-  // Define the main circuit path coordinates for a larger SVG (450x350)
-  const path = [
-    [50, 250, 0],   // Start (Battery -)
-    [50, 50, 0],    // Up to the corner
-    [150, 50, 0],   // Across to the switch
-    [350, 50, 0],   // Past the fan connector
-    [350, 300, 0],  // Down to the end of the circuit
-    [50, 300, 0],   // Back to the battery + side
-    [50, 250, 0]    // Final point (Loop back)
+export default function InteractiveCircuit() {
+  const components = [
+    { id: "battery", label: "🔋 Battery" },
+    { id: "switch", label: "🎚️ Switch" },
+    { id: "bulb", label: "💡 Bulb" },
+    { id: "wire", label: "🧵 Wire" },
   ];
 
-  let totalLength = 0;
-  let segmentLengths = [];
+  const placeholders = [
+    { id: "battery", label: "Battery", x: 100, y: 200 },
+    { id: "wire1", label: "Wire", x: 300, y: 100 },
+    { id: "switch", label: "Switch", x: 500, y: 100 },
+    { id: "wire2", label: "Wire", x: 700, y: 200 },
+    { id: "bulb", label: "Bulb", x: 400, y: 300 },
+  ];
 
-  // 1. Calculate length of each segment
-  for (let i = 0; i < path.length - 1; i++) {
-    const p1 = path[i];
-    const p2 = path[i + 1];
-    const length = Math.sqrt(Math.pow(p2[0] - p1[0], 2) + Math.pow(p2[1] - p1[1], 2));
-    segmentLengths.push(length);
-    totalLength += length;
-  }
+  const [placed, setPlaced] = useState({});
+  const [dragging, setDragging] = useState(null);
+  const [switchOn, setSwitchOn] = useState(false);
 
-  // Simple animation: loop position from 0 to 1
-  let pos = ((time / 50) + offset) % 1; 
-  let targetDistance = pos * totalLength;
-  let cumulativeLength = 0;
-  
-  // 2. Find which segment the electron is on
-  for (let i = 0; i < segmentLengths.length; i++) {
-    let segmentLength = segmentLengths[i];
-    
-    if (targetDistance <= cumulativeLength + segmentLength) {
-      const p1 = path[i];
-      const p2 = path[i + 1];
-      const distanceIntoSegment = targetDistance - cumulativeLength;
-      const ratio = distanceIntoSegment / segmentLength;
-
-      // Linear interpolation to find (x, y)
-      const x = p1[0] + (p2[0] - p1[0]) * ratio;
-      const y = p1[1] + (p2[1] - p1[1]) * ratio;
-      
-      return { x, y };
+  const handleDrop = (targetId) => {
+    if (dragging) {
+      setPlaced((prev) => ({ ...prev, [targetId]: dragging }));
+      setDragging(null);
     }
-    cumulativeLength += segmentLength;
-  }
-  return { x: path[0][0], y: path[0][1] }; // Default fallback
-};
+  };
 
+  const handleReset = () => {
+    setPlaced({});
+    setSwitchOn(false);
+  };
 
-export default function InteractiveCircuitLab() {
-  const [isOn, setIsOn] = useState(false);
-  const [fanAngle, setFanAngle] = useState(0);
-  const [time, setTime] = useState(0); 
+  const allCorrect =
+    placed["battery"] === "battery" &&
+    placed["switch"] === "switch" &&
+    placed["bulb"] === "bulb" &&
+    placed["wire1"] === "wire" &&
+    placed["wire2"] === "wire";
 
-  // --- Fan Rotation and Current Flow Effect ---
-  useEffect(() => {
-    let animationFrame;
-    let lastTime = 0;
-
-    const animate = (currentTime) => {
-      const deltaTime = currentTime - lastTime;
-      lastTime = currentTime;
-
-      if (isOn) {
-        // 1. Rotate Fan ONLY when ON
-        setFanAngle(prev => (prev + 10) % 360); 
-        
-        // 2. Animate Electrons (Current)
-        setTime(prev => (prev + 1)); 
-      }
-      
-      // Request the next frame regardless of 'isOn' to keep the clock (time) running
-      // but only update states when 'isOn' is true.
-      animationFrame = requestAnimationFrame(animate);
-    };
-
-    // Start the loop
-    animationFrame = requestAnimationFrame(animate);
-
-    // Cleanup function: stop the animation loop
-    return () => cancelAnimationFrame(animationFrame);
-  }, [isOn]); // Re-run effect only to initialize/cleanup if 'isOn' changes (optional but good practice)
-
-  // --- JSX Rendering ---
-  
-  // Switch visual position calculation
-  const switchX = 150;
-  const switchY = 50;
-  // If ON, the switch connects to the left wire (x=150). If OFF, it's slightly raised (x=140).
-  const switchConnectionX = isOn ? switchX : switchX - 10;
-  const switchConnectionY = isOn ? switchY : switchY - 10;
-
-  // Generate 8 electrons for the flow animation
-  const electrons = Array.from({ length: 8 }).map((_, index) => {
-    const pos = getElectronPosition(time, index / 8); 
-    
-    return (
-      <circle 
-        key={index} 
-        cx={pos.x} 
-        cy={pos.y} 
-        r="4" // Slightly larger electrons
-        fill="cyan" 
-        opacity={isOn ? 1 : 0} 
-        style={{ transition: 'opacity 0.5s' }}
-      />
-    );
-  });
-
+  const circuitComplete = allCorrect && switchOn;
 
   return (
-    <div style={{ textAlign: "center", padding: "20px" }}>
-      <h1>⚡ Full Circuit Fan Lab (Expanded View)</h1>
-      
-      {/* Switch Button */}
+    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-indigo-200 flex flex-col items-center p-6 relative">
+      <h1 className="text-4xl font-bold text-indigo-800 mb-4 drop-shadow-md">
+        ⚡ Build and Control Your Circuit
+      </h1>
+      <p className="text-gray-700 mb-6 text-lg text-center max-w-xl">
+        Drag each component into its correct place. Once the circuit is complete,
+        use the switch to turn it ON and make the bulb glow!
+      </p>
+
+      {/* Reset Button - Always Visible */}
       <button
-        onClick={() => setIsOn(!isOn)}
-        style={{
-          padding: "10px 20px",
-          margin: "20px",
-          background: isOn ? "green" : "red",
-          color: "white",
-          fontWeight: "bold",
-          border: "none",
-          borderRadius: "5px",
-          cursor: "pointer",
-        }}
+        onClick={handleReset}
+        className="absolute top-6 right-8 px-6 py-3 rounded-xl font-bold text-white bg-red-500 shadow-md hover:bg-red-600"
       >
-        {isOn ? "BREAK Circuit (Switch OFF)" : "CLOSE Circuit (Switch ON)"}
+        Reset
       </button>
 
-      {/* --- SVG Circuit Visualization --- */}
-      {/* Increased size and adjusted viewBox */}
-      <svg 
-        width="100%" 
-        height="400" 
-        viewBox="0 0 400 350" 
-        style={{ border: "2px solid #333", maxWidth: '600px', margin: '0 auto', display: 'block' }}
-      >
-        
-        {/* Wires (Main Circuit Path) */}
-        <polyline
-          points="50,250 50,50 150,50 350,50 350,300 50,300 50,250"
-          fill="none"
-          stroke="black"
-          strokeWidth="5" // Thicker wires
-        />
+      {/* Circuit Board */}
+      <div className="relative bg-white rounded-3xl shadow-lg p-8 w-[900px] h-[500px] border-4 border-dashed border-indigo-400">
+        {/* Circuit Wires */}
+        <svg
+          className="absolute top-0 left-0 w-full h-full"
+          style={{ pointerEvents: "none" }}
+        >
+          {[
+            ["battery", "wire1"],
+            ["wire1", "switch"],
+            ["switch", "wire2"],
+            ["wire2", "bulb"],
+            ["bulb", "battery"],
+          ].map(([a, b], i) => {
+            const start = placeholders.find((p) => p.id === a);
+            const end = placeholders.find((p) => p.id === b);
+            return (
+              <line
+                key={i}
+                x1={start.x + 60}
+                y1={start.y + 40}
+                x2={end.x + 40}
+                y2={end.y + 40}
+                stroke={circuitComplete ? "#FFD700" : "#999"}
+                strokeWidth="6"
+                strokeLinecap="round"
+              />
+            );
+          })}
+        </svg>
 
-        {/* --- 1. Battery (Source) --- */}
-        <rect x="30" y="250" width="40" height="50" fill="gray" />
-        <text x="50" y="275" fontSize="14" textAnchor="middle" fill="white">BATTERY</text>
-        <text x="60" y="305" fontSize="18" fill="green">+</text>
-        <text x="40" y="245" fontSize="18" fill="red">-</text>
+        {/* Placeholders */}
+        {placeholders.map((slot) => {
+          const isBulb = slot.id === "bulb";
+          const isPlaced = placed[slot.id];
 
-        {/* --- 2. Switch --- */}
-        <line x1="150" y1="50" x2="150" y2="60" stroke="black" strokeWidth="5" /> 
-        <circle cx="150" cy="50" r="6" fill="black" />
-        
-        {/* The Moving Switch Arm */}
-        <line 
-          x1="150" y1="50" 
-          x2={switchConnectionX} y2={switchConnectionY} 
-          stroke="red" strokeWidth="5" 
-          style={{ transition: 'all 0.3s ease' }} 
-        /> 
-        <circle 
-          cx={switchConnectionX} cy={switchConnectionY} 
-          r="6" fill="red" 
-          style={{ transition: 'all 0.3s ease' }} 
-        />
+          return (
+            <div
+              key={slot.id}
+              style={{
+                position: "absolute",
+                left: slot.x,
+                top: slot.y,
+              }}
+              onDrop={() => handleDrop(slot.id)}
+              onDragOver={(e) => e.preventDefault()}
+              className={`w-32 h-32 flex flex-col items-center justify-center rounded-2xl border-2 text-center cursor-pointer ${
+                isPlaced
+                  ? "bg-green-100 border-green-400"
+                  : "bg-indigo-50 border-indigo-300"
+              }`}
+            >
+              {isPlaced ? (
+                <motion.div
+                  className="text-4xl"
+                  animate={
+                    isBulb && circuitComplete
+                      ? {
+                          scale: [1, 1.15, 1],
+                          filter: "drop-shadow(0 0 30px yellow)",
+                        }
+                      : { filter: "drop-shadow(0 0 0px transparent)", scale: 1 }
+                  }
+                  transition={{
+                    repeat: isBulb && circuitComplete ? Infinity : 0,
+                    duration: 1.2,
+                  }}
+                >
+                  {components.find((c) => c.id === placed[slot.id]).label}
+                </motion.div>
+              ) : (
+                <p className="text-sm font-medium text-indigo-700">
+                  {slot.label}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
-        {/* --- 3. Fan (Load) --- */}
-        <circle cx={FAN_CENTER_X} cy={FAN_CENTER_Y} r={FAN_RADIUS + 10} fill="lightblue" stroke="black" strokeWidth="3" />
-        
-        {/* Blades (Rotation) */}
-        <g transform={`rotate(${fanAngle},${FAN_CENTER_X},${FAN_CENTER_Y})`}>
-          <rect x={FAN_CENTER_X - 5} y={FAN_CENTER_Y - 50} width="10" height="40" fill="blue" />
-          <rect x={FAN_CENTER_X - 5} y={FAN_CENTER_Y + 10} width="10" height="40" fill="blue" />
-          <rect x={FAN_CENTER_X - 50} y={FAN_CENTER_Y - 5} width="40" height="10" fill="blue" />
-          <rect x={FAN_CENTER_X + 10} y={FAN_CENTER_Y - 5} width="40" height="10" fill="blue" />
-        </g>
-        
-        {/* Fan Center */}
-        <circle cx={FAN_CENTER_X} cy={FAN_CENTER_Y} r="15" fill={isOn ? "gold" : "black"} />
+      {/* Controls */}
+      <div className="mt-6 flex flex-col items-center gap-3">
+        {allCorrect ? (
+          <button
+            onClick={() => setSwitchOn(!switchOn)}
+            className={`px-6 py-3 rounded-xl font-bold text-white shadow-md ${
+              switchOn ? "bg-green-500" : "bg-gray-500"
+            }`}
+          >
+            {switchOn ? "Turn OFF" : "Turn ON"}
+          </button>
+        ) : (
+          <p className="text-gray-600 font-medium">
+            Complete the circuit to use the switch!
+          </p>
+        )}
+      </div>
 
-        {/* Connections to Fan from main circuit path */}
-        <line x1="350" y1="50" x2="350" y2="100" stroke="black" strokeWidth="5" />
-        <line x1="350" y1="300" x2="350" y2="250" stroke="black" strokeWidth="5" />
-        
-        {/* Wires connecting the main path to the fan terminals */}
-        <line x1="350" y1="100" x2={FAN_CENTER_X} y2={FAN_CENTER_Y - FAN_RADIUS - 5} stroke="black" strokeWidth="5" />
-        <line x1="350" y1="250" x2={FAN_CENTER_X} y2={FAN_CENTER_Y + FAN_RADIUS + 5} stroke="black" strokeWidth="5" />
+      {/* Component Tray */}
+      <h2 className="text-xl font-semibold mt-8 text-indigo-800">
+        Components
+      </h2>
+      <div className="flex gap-4 mt-3 flex-wrap justify-center">
+        {components.map((comp) => (
+          <motion.div
+            key={comp.id}
+            draggable
+            onDragStart={() => setDragging(comp.id)}
+            onDragEnd={() => setDragging(null)}
+            whileHover={{ scale: 1.1 }}
+            className="p-3 rounded-xl bg-indigo-300 text-3xl cursor-grab shadow-md"
+          >
+            {comp.label}
+          </motion.div>
+        ))}
+      </div>
 
-
-        {/* --- 4. Current Flow (Electrons) --- */}
-        {electrons}
-
-      </svg>
-
-      <p style={{ marginTop: "15px", fontWeight: "bold" }}>
-        {isOn 
-          ? "✅ Circuit is **CLOSED**. Current is flowing and turning the motor. 🌀" 
-          : "🚫 Circuit is **OPEN**. Current stops immediately, and the fan is static. 🛑"
-        }
-      </p>
-      <p style={{ fontSize: "0.9em", color: "#666" }}>
-        The cyan dots represent the **Current (flow of electrons)**. Notice how the switch visually breaks the connection!
+      {/* Feedback */}
+      <p className="mt-6 text-lg font-semibold text-indigo-700">
+        {!allCorrect
+          ? "Drag all components to their correct places to build your circuit!"
+          : switchOn
+          ? "⚡ The circuit is ON! The bulb is glowing brightly!"
+          : "Circuit complete! Turn on the switch to make the bulb glow."}
       </p>
     </div>
   );
