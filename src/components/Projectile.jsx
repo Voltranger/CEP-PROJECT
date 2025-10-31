@@ -2,6 +2,7 @@ import TabLayout from "./TabLayout";
 import ProjectileSimulation from "./ProjectileSimulation"; // your simulation component
 import { motion } from "framer-motion";
 import ProjectileConceptImage from "../assets/projectile-boy.png";
+import Quiz from "./Quiz";
 export default function Projectile() {
   return (
     <TabLayout
@@ -57,26 +58,36 @@ export default function Projectile() {
       }
       simulation={<ProjectileSimulation />}
       points={
-        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 text-black font-medium">
-          {[
-            "Projectile motion is the motion of an object thrown into the air under gravity.",
-
-            "Motion occurs in two dimensions — horizontal (x) and vertical (y).",
-            "Horizontal motion has constant velocity (no acceleration).",
-            "Vertical motion is accelerated due to gravity (g = 9.8 m/s² downward).",
-            "The two components of motion are independent of each other.",
-            "The angle of projection determines the range and height.",
-            "The range is maximum when the angle θ = 45 degree .",
-            "Velocity is tangent to the trajectory at every point.",
-          ].map((point, i) => (
-            <li
-              key={i}
-              className="p-3 rounded-xl border border-gray-600 bg-white/70 hover:bg-white hover:scale-105 hover:shadow-[0_0_12px_#00f6ff] transition-all duration-300"
-            >
-              {point}
-            </li>
-          ))}
-        </ul>
+        <Quiz
+          title="Projectile Motion Quiz"
+          questions={[
+            {
+              prompt: "The trajectory of ideal projectile motion is:",
+              options: ["Circular", "Parabolic", "Elliptical", "Straight line"],
+              correctIndex: 1,
+            },
+            {
+              prompt: "For maximum range (no air resistance), the launch angle should be:",
+              options: ["30°", "45°", "60°", "90°"],
+              correctIndex: 1,
+            },
+            {
+              prompt: "Horizontal acceleration in ideal projectile motion is:",
+              options: ["g downward", "g upward", "Zero", "Depends on speed"],
+              correctIndex: 2,
+            },
+            {
+              prompt: "Vertical acceleration during flight equals:",
+              options: ["0", "g upward", "g downward", "Variable"],
+              correctIndex: 2,
+            },
+            {
+              prompt: "At the highest point, the vertical component of velocity is:",
+              options: ["Maximum", "Zero", "Equal to horizontal", "Negative"],
+              correctIndex: 1,
+            },
+          ]}
+        />
       }
     />
   );

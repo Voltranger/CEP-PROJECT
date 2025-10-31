@@ -1,6 +1,7 @@
 import TabLayout from "./TabLayout";
 import ElectricitySimulation from "./ElectricitySimulation";
 import { motion } from "framer-motion";
+import Quiz from "./Quiz";
 
 // Ensure this path is correct for your file structure!
 import ElectricityConceptImage from "../assets/electricity-boy1.png"; 
@@ -66,25 +67,36 @@ export default function Projectile() {
       }
       simulation={<ElectricitySimulation />}
       points={
-        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 text-black font-medium">
-          {[
-            "Electricity is a form of energy.",
-            "It flows through conductors (like copper wires).",
-            "It does not flows through insulators (like rubber, wood, or plastic).",
-            "A circuit is a closed path that allows electricity to flow.",
-            "Electricity can be produced from batteries (stored energy) or power stations.",
-            "Switches are used to turn electricity on and off.",
-            "Electricity is very useful but must be handled carefully to avoid shocks.",
-            "Electricity is the movement of tiny particles called electrons.",
-          ].map((point, i) => (
-            <li
-              key={i}
-              className="p-3 rounded-xl border border-gray-600 bg-white/70 hover:bg-white hover:scale-105 hover:shadow-[0_0_12px_#00f6ff] transition-all duration-300"
-            >
-              {point}
-            </li>
-          ))}
-        </ul>
+        <Quiz
+          title="Electricity Quiz"
+          questions={[
+            {
+              prompt: "Electricity flows easily through which of the following?",
+              options: ["Insulators", "Conductors", "Plastics", "Rubber"],
+              correctIndex: 1,
+            },
+            {
+              prompt: "The unit of electric current is:",
+              options: ["Volt", "Ohm", "Ampere", "Watt"],
+              correctIndex: 2,
+            },
+            {
+              prompt: "A circuit allows current to flow when the switch is:",
+              options: ["Open", "Off", "Closed/On", "Removed"],
+              correctIndex: 2,
+            },
+            {
+              prompt: "A battery typically provides:",
+              options: ["AC (Alternating Current)", "DC (Direct Current)", "No current", "Only voltage"],
+              correctIndex: 1,
+            },
+            {
+              prompt: "Which of these is an insulator?",
+              options: ["Copper", "Aluminum", "Rubber", "Gold"],
+              correctIndex: 2,
+            },
+          ]}
+        />
       }
     />
   );

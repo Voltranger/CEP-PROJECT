@@ -2,6 +2,7 @@ import TabLayout from "./TabLayout";
 import MagnetismSimulation from "./MagnetismSimulation";
 import { motion } from "framer-motion";
 import MagnetConceptImage from "../assets/magnet-boy.png";
+import Quiz from "./Quiz";
 export default function Projectile() {
   return (
     <TabLayout
@@ -67,25 +68,36 @@ export default function Projectile() {
       }
       simulation={<MagnetismSimulation />}
       points={
-        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 text-black font-medium">
-          {[
-            "Magnetism attracts or repels certain materials.",
-            "Only iron, nickel, and cobalt are magnetic.",
-            "Every magnet has North and South poles.",
-            "Like poles repel, unlike poles attract.",
-            "Magnetic force is strongest at the poles.",
-            "Earth acts like a giant magnet.",
-            "A compass works because of Earth’s magnetism.",
-            "Heat or hammering can destroy magnetism.",
-          ].map((point, i) => (
-            <li
-              key={i}
-              className="p-3 rounded-xl border border-gray-600 bg-white/70 hover:bg-white hover:scale-105 hover:shadow-[0_0_12px_#00f6ff] transition-all duration-300"
-            >
-              {point}
-            </li>
-          ))}
-        </ul>
+        <Quiz
+          title="Magnetism Quiz"
+          questions={[
+            {
+              prompt: "A magnet has two poles called:",
+              options: ["East and West", "Positive and Negative", "North and South", "Top and Bottom"],
+              correctIndex: 2,
+            },
+            {
+              prompt: "Like poles of two magnets:",
+              options: ["Attract", "Repel", "Neither", "Become neutral"],
+              correctIndex: 1,
+            },
+            {
+              prompt: "A compass needle aligns with:",
+              options: ["Wind direction", "Earth's magnetic field", "Sunlight", "Gravity"],
+              correctIndex: 1,
+            },
+            {
+              prompt: "Common magnetic materials include:",
+              options: ["Iron, Nickel, Cobalt", "Copper, Aluminum, Silver", "Plastic, Wood, Glass", "Gold, Silver, Platinum"],
+              correctIndex: 0,
+            },
+            {
+              prompt: "Magnetic force is strongest at the:",
+              options: ["Center", "Edges", "Poles", "Entire surface equally"],
+              correctIndex: 2,
+            },
+          ]}
+        />
       }
     />
   );
