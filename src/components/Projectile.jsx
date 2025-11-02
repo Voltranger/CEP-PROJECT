@@ -28,7 +28,7 @@ export default function Projectile() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1 }}
           >
-           Projectile 
+           Projectile Motion
           </motion.h2>
 
           {/* Main paragraph — pure black with cyan glow */}
