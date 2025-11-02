@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Tabs from "./Tabs";
-export default function TabLayout({ concept, simulation, points }) {
+export default function TabLayout({ concept, simulation, quiz }) {
   const [activeTab, setActiveTab] = useState("concept");
 
   return (
@@ -21,8 +21,8 @@ export default function TabLayout({ concept, simulation, points }) {
             activeTab={activeTab}
             />
             <Tabs
-            tab="points"
-            description="Points"
+            tab="quiz"
+            description="Quiz Section"
             setActiveTab={setActiveTab}
             activeTab={activeTab}
             />
@@ -42,7 +42,7 @@ export default function TabLayout({ concept, simulation, points }) {
       >
         {activeTab === "concept" && <div>{concept}</div>}
         {activeTab === "simulation" && <div>{simulation}</div>}
-        {activeTab === "points" && <div>{points}</div>}
+        {activeTab === "quiz" && <div>{quiz}</div>}
       </div>
     </div>
   );
