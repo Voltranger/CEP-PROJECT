@@ -1,8 +1,10 @@
+import { useState } from "react";
 import TabLayout from "./TabLayout";
 import ProjectileSimulation from "./ProjectileSimulation"; // your simulation component
 import { motion } from "framer-motion";
 import ProjectileConceptImage from "../assets/projectile-boy.png";
 export default function Projectile() {
+  const [selectedAnswers, setSelectedAnswers] = useState({});
   return (
     <TabLayout
       concept={
@@ -56,27 +58,117 @@ export default function Projectile() {
         </motion.div>
       }
       simulation={<ProjectileSimulation />}
-      points={
-        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 text-black font-medium">
+      quiz={
+        <div className="p-4 text-black font-medium space-y-6">
           {[
-            "Projectile motion is the motion of an object thrown into the air under gravity.",
-
-            "Motion occurs in two dimensions — horizontal (x) and vertical (y).",
-            "Horizontal motion has constant velocity (no acceleration).",
-            "Vertical motion is accelerated due to gravity (g = 9.8 m/s² downward).",
-            "The two components of motion are independent of each other.",
-            "The angle of projection determines the range and height.",
-            "The range is maximum when the angle θ = 45 degree .",
-            "Velocity is tangent to the trajectory at every point.",
-          ].map((point, i) => (
-            <li
-              key={i}
-              className="p-3 rounded-xl border border-gray-600 bg-white/70 hover:bg-white hover:scale-105 hover:shadow-[0_0_12px_#00f6ff] transition-all duration-300"
-            >
-              {point}
-            </li>
-          ))}
-        </ul>
+            {
+              question: "What is projectile motion?",
+              options: [
+                "Motion of an object thrown into the air under gravity",
+                "Motion of an object in space",
+                "Motion of an object underwater",
+                "Motion of an object on a flat surface"
+              ],
+              correct: 0
+            },
+            {
+              question: "In which dimensions does projectile motion occur?",
+              options: [
+                "Only horizontal",
+                "Only vertical",
+                "Both horizontal and vertical",
+                "Three dimensions"
+              ],
+              correct: 2
+            },
+            {
+              question: "What is the acceleration in horizontal motion of a projectile?",
+              options: [
+                "9.8 m/s²",
+                "Variable",
+                "Zero (no acceleration)",
+                "Depends on initial velocity"
+              ],
+              correct: 2
+            },
+            {
+              question: "What is the value of acceleration due to gravity on Earth?",
+              options: [
+                "5.8 m/s²",
+                "7.8 m/s²",
+                "8.8 m/s²",
+                "9.8 m/s²"
+              ],
+              correct: 3
+            },
+            {
+              question: "At what angle of projection is the range maximum?",
+              options: [
+                "30 degrees",
+                "45 degrees",
+                "60 degrees",
+                "90 degrees"
+              ],
+              correct: 1
+            }
+          ].map((q, i) => {
+            const isAnswered = selectedAnswers[i] !== undefined;
+            const isCorrect = selectedAnswers[i] === q.correct;
+            
+            return (
+              <div key={i} className="bg-white/70 p-4 rounded-xl border border-gray-600">
+                <p className="font-bold mb-3">{i + 1}. {q.question}</p>
+                {isAnswered && (
+                  <div className={`mb-3 p-2 rounded-lg ${isCorrect ? 'bg-green-100 text-green-800 border border-green-500' : 'bg-red-100 text-red-800 border border-red-500'}`}>
+                    {isCorrect ? '✓ Correct!' : '✗ Incorrect'}
+                  </div>
+                )}
+                <div className="space-y-2">
+                  {q.options.map((option, j) => {
+                    const isSelected = selectedAnswers[i] === j;
+                    const isCorrectOption = j === q.correct;
+                    let bgColor = "bg-white";
+                    let borderColor = "border-gray-300";
+                    let textColor = "text-black";
+                    
+                    if (isAnswered) {
+                      if (isCorrectOption) {
+                        bgColor = "bg-green-100";
+                        borderColor = "border-green-500";
+                        textColor = "text-green-800";
+                      } else if (isSelected && !isCorrectOption) {
+                        bgColor = "bg-red-100";
+                        borderColor = "border-red-500";
+                        textColor = "text-red-800";
+                      }
+                    } else if (isSelected) {
+                      bgColor = "bg-blue-100";
+                      borderColor = "border-blue-500";
+                      textColor = "text-blue-800";
+                    }
+                    
+                    return (
+                      <div 
+                        key={j} 
+                        onClick={() => {
+                          if (!isAnswered) {
+                            setSelectedAnswers({...selectedAnswers, [i]: j});
+                          }
+                        }}
+                        className={`p-2 ${bgColor} ${borderColor} ${textColor} cursor-pointer hover:scale-[1.02] hover:shadow-[0_0_12px_#00f6ff] transition-all duration-300 rounded-lg border ${!isAnswered ? 'hover:bg-blue-50' : ''}`}
+                      >
+                        {option}
+                        {isAnswered && isCorrectOption && (
+                          <span className="ml-2 font-bold">✓</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       }
     />
   );

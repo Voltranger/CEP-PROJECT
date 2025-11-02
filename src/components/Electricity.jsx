@@ -1,3 +1,4 @@
+import { useState } from "react";
 import TabLayout from "./TabLayout";
 import ElectricitySimulation from "./ElectricitySimulation";
 import { motion } from "framer-motion";
@@ -6,6 +7,7 @@ import { motion } from "framer-motion";
 import ElectricityConceptImage from "../assets/electricity-boy1.png"; 
 
 export default function Projectile() {
+  const [selectedAnswers, setSelectedAnswers] = useState({});
   return (
     <TabLayout
       concept={
@@ -65,26 +67,117 @@ export default function Projectile() {
         </motion.div>
       }
       simulation={<ElectricitySimulation />}
-      points={
-        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 text-black font-medium">
+      quiz={
+        <div className="p-4 text-black font-medium space-y-6">
           {[
-            "Electricity is a form of energy.",
-            "It flows through conductors (like copper wires).",
-            "It does not flows through insulators (like rubber, wood, or plastic).",
-            "A circuit is a closed path that allows electricity to flow.",
-            "Electricity can be produced from batteries (stored energy) or power stations.",
-            "Switches are used to turn electricity on and off.",
-            "Electricity is very useful but must be handled carefully to avoid shocks.",
-            "Electricity is the movement of tiny particles called electrons.",
-          ].map((point, i) => (
-            <li
-              key={i}
-              className="p-3 rounded-xl border border-gray-600 bg-white/70 hover:bg-white hover:scale-105 hover:shadow-[0_0_12px_#00f6ff] transition-all duration-300"
-            >
-              {point}
-            </li>
-          ))}
-        </ul>
+            {
+              question: "What is electricity?",
+              options: [
+                "A form of energy produced by electron movement",
+                "A type of light",
+                "A type of heat",
+                "A magnetic field"
+              ],
+              correct: 0
+            },
+            {
+              question: "Which of these is NOT a conductor of electricity?",
+              options: [
+                "Copper wire",
+                "Aluminum foil",
+                "Rubber",
+                "Iron rod"
+              ],
+              correct: 2
+            },
+            {
+              question: "What is a circuit?",
+              options: [
+                "A type of battery",
+                "A closed path for electricity to flow",
+                "A type of switch",
+                "An electrical device"
+              ],
+              correct: 1
+            },
+            {
+              question: "What are the tiny particles that create electricity when they move?",
+              options: [
+                "Protons",
+                "Neutrons",
+                "Electrons",
+                "Atoms"
+              ],
+              correct: 2
+            },
+            {
+              question: "Which of these can produce electricity?",
+              options: [
+                "Only batteries",
+                "Only power stations",
+                "Both batteries and power stations",
+                "Neither batteries nor power stations"
+              ],
+              correct: 2
+            }
+          ].map((q, i) => {
+            const isAnswered = selectedAnswers[i] !== undefined;
+            const isCorrect = selectedAnswers[i] === q.correct;
+            
+            return (
+              <div key={i} className="bg-white/70 p-4 rounded-xl border border-gray-600">
+                <p className="font-bold mb-3">{i + 1}. {q.question}</p>
+                {isAnswered && (
+                  <div className={`mb-3 p-2 rounded-lg ${isCorrect ? 'bg-green-100 text-green-800 border border-green-500' : 'bg-red-100 text-red-800 border border-red-500'}`}>
+                    {isCorrect ? '✓ Correct!' : '✗ Incorrect'}
+                  </div>
+                )}
+                <div className="space-y-2">
+                  {q.options.map((option, j) => {
+                    const isSelected = selectedAnswers[i] === j;
+                    const isCorrectOption = j === q.correct;
+                    let bgColor = "bg-white";
+                    let borderColor = "border-gray-300";
+                    let textColor = "text-black";
+                    
+                    if (isAnswered) {
+                      if (isCorrectOption) {
+                        bgColor = "bg-green-100";
+                        borderColor = "border-green-500";
+                        textColor = "text-green-800";
+                      } else if (isSelected && !isCorrectOption) {
+                        bgColor = "bg-red-100";
+                        borderColor = "border-red-500";
+                        textColor = "text-red-800";
+                      }
+                    } else if (isSelected) {
+                      bgColor = "bg-blue-100";
+                      borderColor = "border-blue-500";
+                      textColor = "text-blue-800";
+                    }
+                    
+                    return (
+                      <div 
+                        key={j} 
+                        onClick={() => {
+                          if (!isAnswered) {
+                            setSelectedAnswers({...selectedAnswers, [i]: j});
+                          }
+                        }}
+                        className={`p-2 ${bgColor} ${borderColor} ${textColor} cursor-pointer hover:scale-[1.02] hover:shadow-[0_0_12px_#00f6ff] transition-all duration-300 rounded-lg border ${!isAnswered ? 'hover:bg-blue-50' : ''}`}
+                      >
+                        {option}
+                        {isAnswered && isCorrectOption && (
+                          <span className="ml-2 font-bold">✓</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       }
     />
   );

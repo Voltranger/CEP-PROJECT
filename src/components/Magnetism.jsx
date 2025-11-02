@@ -1,8 +1,10 @@
+import { useState } from "react";
 import TabLayout from "./TabLayout";
 import MagnetismSimulation from "./MagnetismSimulation";
 import { motion } from "framer-motion";
 import MagnetConceptImage from "../assets/magnet-boy.png";
 export default function Projectile() {
+  const [selectedAnswers, setSelectedAnswers] = useState({});
   return (
     <TabLayout
       concept={
@@ -56,8 +58,6 @@ export default function Projectile() {
           <motion.img
                       src={MagnetConceptImage}
                       alt="Animated child holding a globe of electricity"
-                      // KEY CHANGES: max-w-full ensures it spans the entire container width. 
-                      // Negative margin adjusted for a tighter fit below the text box.
                       className="relative w-full max-w-full h-[375px] pl-0 pr-0  pt-8 mx-auto mt-[-0.5rem] z-10 pointer-events-none block"
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -66,26 +66,117 @@ export default function Projectile() {
         </motion.div>
       }
       simulation={<MagnetismSimulation />}
-      points={
-        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 text-black font-medium">
+      quiz={
+        <div className="p-4 text-black font-medium space-y-6">
           {[
-            "Magnetism attracts or repels certain materials.",
-            "Only iron, nickel, and cobalt are magnetic.",
-            "Every magnet has North and South poles.",
-            "Like poles repel, unlike poles attract.",
-            "Magnetic force is strongest at the poles.",
-            "Earth acts like a giant magnet.",
-            "A compass works because of Earth’s magnetism.",
-            "Heat or hammering can destroy magnetism.",
-          ].map((point, i) => (
-            <li
-              key={i}
-              className="p-3 rounded-xl border border-gray-600 bg-white/70 hover:bg-white hover:scale-105 hover:shadow-[0_0_12px_#00f6ff] transition-all duration-300"
-            >
-              {point}
-            </li>
-          ))}
-        </ul>
+            {
+              question: "Which materials are naturally magnetic?",
+              options: [
+                "Iron, nickel, and cobalt",
+                "Gold, silver, and copper",
+                "Wood, plastic, and rubber",
+                "Glass, aluminum, and zinc"
+              ],
+              correct: 0
+            },
+            {
+              question: "What happens when you bring the same poles of two magnets together?",
+              options: [
+                "They attract each other",
+                "They repel each other",
+                "Nothing happens",
+                "They cancel each other out"
+              ],
+              correct: 1
+            },
+            {
+              question: "Why does a compass work?",
+              options: [
+                "Because it contains batteries",
+                "Because it's made of special glass",
+                "Because of Earth's magnetism",
+                "Because it's painted with special colors"
+              ],
+              correct: 2
+            },
+            {
+              question: "Where is the magnetic force strongest in a magnet?",
+              options: [
+                "In the middle",
+                "At the poles",
+                "Equally everywhere",
+                "On the surface only"
+              ],
+              correct: 1
+            },
+            {
+              question: "What can destroy a magnet's magnetic properties?",
+              options: [
+                "Exposure to water",
+                "Exposure to air",
+                "Painting the magnet",
+                "Heat or strong physical impact"
+              ],
+              correct: 3
+            }
+          ].map((q, i) => {
+            const isAnswered = selectedAnswers[i] !== undefined;
+            const isCorrect = selectedAnswers[i] === q.correct;
+            
+            return (
+              <div key={i} className="bg-white/70 p-4 rounded-xl border border-gray-600">
+                <p className="font-bold mb-3">{i + 1}. {q.question}</p>
+                {isAnswered && (
+                  <div className={`mb-3 p-2 rounded-lg ${isCorrect ? 'bg-green-100 text-green-800 border border-green-500' : 'bg-red-100 text-red-800 border border-red-500'}`}>
+                    {isCorrect ? '✓ Correct!' : '✗ Incorrect'}
+                  </div>
+                )}
+                <div className="space-y-2">
+                  {q.options.map((option, j) => {
+                    const isSelected = selectedAnswers[i] === j;
+                    const isCorrectOption = j === q.correct;
+                    let bgColor = "bg-white";
+                    let borderColor = "border-gray-300";
+                    let textColor = "text-black";
+                    
+                    if (isAnswered) {
+                      if (isCorrectOption) {
+                        bgColor = "bg-green-100";
+                        borderColor = "border-green-500";
+                        textColor = "text-green-800";
+                      } else if (isSelected && !isCorrectOption) {
+                        bgColor = "bg-red-100";
+                        borderColor = "border-red-500";
+                        textColor = "text-red-800";
+                      }
+                    } else if (isSelected) {
+                      bgColor = "bg-blue-100";
+                      borderColor = "border-blue-500";
+                      textColor = "text-blue-800";
+                    }
+                    
+                    return (
+                      <div 
+                        key={j} 
+                        onClick={() => {
+                          if (!isAnswered) {
+                            setSelectedAnswers({...selectedAnswers, [i]: j});
+                          }
+                        }}
+                        className={`p-2 ${bgColor} ${borderColor} ${textColor} cursor-pointer hover:scale-[1.02] hover:shadow-[0_0_12px_#00f6ff] transition-all duration-300 rounded-lg border ${!isAnswered ? 'hover:bg-blue-50' : ''}`}
+                      >
+                        {option}
+                        {isAnswered && isCorrectOption && (
+                          <span className="ml-2 font-bold">✓</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       }
     />
   );
